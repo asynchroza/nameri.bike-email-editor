@@ -21,6 +21,7 @@ import ImportJson from './ImportJson';
 import JsonPanel from './JsonPanel';
 import MainTabsGroup from './MainTabsGroup';
 import SaveAsNewTemplateButton from './SaveAsNewTemplateButton';
+import SendEmailButton from './SendEmailButton';
 import UpdateTemplateButton from './UpdateTemplateButton';
 
 export default function TemplatePanel() {
@@ -102,6 +103,7 @@ export default function TemplatePanel() {
             <DeleteTemplateButton />
             <DownloadJson />
             <ImportJson />
+            <SendEmailButton />
             <ToggleButtonGroup value={selectedScreenSize} exclusive size="small" onChange={handleScreenSizeChange}>
               <ToggleButton value="desktop">
                 <Tooltip title="Desktop view">

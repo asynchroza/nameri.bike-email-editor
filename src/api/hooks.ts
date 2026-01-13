@@ -25,6 +25,32 @@ export type UpdateEmailTemplateRequest = {
   configuration: unknown;
 };
 
+// User Search Types
+export type UserSearchResponse = {
+  id: string;
+  name: string;
+  email: string;
+  preferredLanguage: string | null;
+  countryCode: string | null;
+};
+
+// Send Email Types
+export type SendEmailsRequest = {
+  html: string;
+  subject: string;
+  userIds: string[];
+  preferredLanguage?: string;
+  countryCode?: string;
+};
+
+export type SendEmailsResponse = {
+  batchId: number;
+  totalRequested: number;
+  totalSent: number;
+  totalFailed: number;
+  status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+};
+
 // Hook to fetch all email templates
 export function useEmailTemplates() {
   return useQuery({
@@ -64,5 +90,28 @@ export function useUpdateEmailTemplate() {
       // Invalidate and refetch templates after update
       queryClient.invalidateQueries({ queryKey: ['emailTemplates'] });
     },
+  });
+}
+
+// Hook to search users
+export function useSearchUsers(params: { q: string; limit: number; offset: number }) {
+  return useQuery({
+    queryKey: ['searchUsers', params],
+    queryFn: () =>
+      apiRequest<UserSearchResponse[]>(
+        `/marketing/users/search?q=${encodeURIComponent(params.q)}&limit=${params.limit}&offset=${params.offset}`
+      ),
+    enabled: params.q.length > 0,
+  });
+}
+
+// Hook to send emails
+export function useSendEmails() {
+  return useMutation({
+    mutationFn: (data: SendEmailsRequest) =>
+      apiRequest<SendEmailsResponse>('/marketing/emails/send', {
+        method: 'POST',
+        body: data,
+      }),
   });
 }
