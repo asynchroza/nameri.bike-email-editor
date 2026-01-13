@@ -2,30 +2,67 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { apiRequest } from './client';
 
-// Example: How to use React Query with the API client
-// Replace these with your actual API endpoints and types
+// Email Template Types
+export type EmailTemplateResponse = {
+  id: number;
+  name: string;
+  description: string | null;
+  configuration: unknown; // TEditorConfiguration type
+  createdAt: Date;
+  updatedAt: Date;
+};
 
-// Example query hook
-export function useExampleQuery(id: string) {
+export type CreateEmailTemplateRequest = {
+  name: string;
+  description?: string;
+  configuration: unknown;
+};
+
+export type UpdateEmailTemplateRequest = {
+  id: number;
+  name: string;
+  description?: string;
+  configuration: unknown;
+};
+
+// Hook to fetch all email templates
+export function useEmailTemplates() {
   return useQuery({
-    queryKey: ['example', id],
-    queryFn: () => apiRequest<{ id: string; name: string }>(`/api/example/${id}`),
+    queryKey: ['emailTemplates'],
+    queryFn: () => apiRequest<EmailTemplateResponse[]>('/marketing/emails/templates'),
   });
 }
 
-// Example mutation hook
-export function useExampleMutation() {
+// Hook to create an email template
+export function useCreateEmailTemplate() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: { name: string }) =>
-      apiRequest<{ id: string; name: string }>('/api/example', {
+    mutationFn: (data: CreateEmailTemplateRequest) =>
+      apiRequest<EmailTemplateResponse>('/marketing/emails/templates', {
         method: 'POST',
         body: data,
       }),
     onSuccess: () => {
-      // Invalidate and refetch queries after mutation
-      queryClient.invalidateQueries({ queryKey: ['example'] });
+      // Invalidate and refetch templates after creation
+      queryClient.invalidateQueries({ queryKey: ['emailTemplates'] });
+    },
+  });
+}
+
+// Hook to update an email template
+export function useUpdateEmailTemplate() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: UpdateEmailTemplateRequest) =>
+      apiRequest<EmailTemplateResponse>('/marketing/emails/templates', {
+        method: 'PUT',
+        body: data,
+      }),
+    onSuccess: () => {
+      // Invalidate and refetch templates after update
+      queryClient.invalidateQueries({ queryKey: ['emailTemplates'] });
     },
   });
 }

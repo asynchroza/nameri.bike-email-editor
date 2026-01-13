@@ -6,7 +6,7 @@ import { CssBaseline, ThemeProvider } from '@mui/material';
 import App from './App';
 import { initializeAuthToken } from './api/auth';
 import { ReactQueryProvider } from './api/queryClient';
-import AuthGuard from './components/AuthGuard';
+import AuthErrorHandler from './components/AuthErrorHandler';
 import theme from './theme';
 
 // Initialize auth token from URL hash on app load
@@ -17,9 +17,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <ReactQueryProvider>
       <ThemeProvider theme={theme}>
         <CssBaseline />
-        <AuthGuard>
+        <AuthErrorHandler>
           <App />
-        </AuthGuard>
+        </AuthErrorHandler>
       </ThemeProvider>
     </ReactQueryProvider>
   </React.StrictMode>

@@ -1,16 +1,19 @@
 import React from 'react';
 
-import { Box, Button, Divider, Drawer, Link, Stack, Typography } from '@mui/material';
+import { AddOutlined } from '@mui/icons-material';
+import { Alert, Button, CircularProgress, Drawer, Stack, Typography } from '@mui/material';
 
-import { useSamplesDrawerOpen } from '../../documents/editor/EditorContext';
+import { useEmailTemplates } from '../../api/hooks';
+import EMPTY_EMAIL_MESSAGE from '../../getConfiguration/sample/empty-email-message';
+import { resetDocument, useSamplesDrawerOpen } from '../../documents/editor/EditorContext';
 
-import SidebarButton from './SidebarButton';
-import logo from './waypoint.svg';
+import TemplateButton from './TemplateButton';
 
 export const SAMPLES_DRAWER_WIDTH = 240;
 
 export default function SamplesDrawer() {
   const samplesDrawerOpen = useSamplesDrawerOpen();
+  const { data: templates, isLoading, error } = useEmailTemplates();
 
   return (
     <Drawer
@@ -21,57 +24,57 @@ export default function SamplesDrawer() {
         width: samplesDrawerOpen ? SAMPLES_DRAWER_WIDTH : 0,
       }}
     >
-      <Stack spacing={3} py={1} px={2} width={SAMPLES_DRAWER_WIDTH} justifyContent="space-between" height="100%">
+      <Stack spacing={3} py={1} px={2} width={SAMPLES_DRAWER_WIDTH} sx={{ height: '100%', overflow: 'auto' }}>
         <Stack spacing={2} sx={{ '& .MuiButtonBase-root': { width: '100%', justifyContent: 'flex-start' } }}>
           <Typography variant="h6" component="h1" sx={{ p: 0.75 }}>
-            EmailBuilder.js
+            Nameri.Bike Email Marketing
           </Typography>
 
-          <Stack alignItems="flex-start">
-            <SidebarButton href="#">Empty</SidebarButton>
-            <SidebarButton href="#sample/welcome">Welcome email</SidebarButton>
-            <SidebarButton href="#sample/one-time-password">One-time passcode (OTP)</SidebarButton>
-            <SidebarButton href="#sample/reset-password">Reset password</SidebarButton>
-            <SidebarButton href="#sample/order-ecomerce">E-commerce receipt</SidebarButton>
-            <SidebarButton href="#sample/subscription-receipt">Subscription receipt</SidebarButton>
-            <SidebarButton href="#sample/reservation-reminder">Reservation reminder</SidebarButton>
-            <SidebarButton href="#sample/post-metrics-report">Post metrics</SidebarButton>
-            <SidebarButton href="#sample/respond-to-message">Respond to inquiry</SidebarButton>
-          </Stack>
-
-          <Divider />
-
-          <Stack>
-            <Button size="small" href="https://www.usewaypoint.com/open-source/emailbuilderjs" target="_blank">
-              Learn more
-            </Button>
-            <Button size="small" href="https://github.com/usewaypoint/email-builder-js" target="_blank">
-              View on GitHub
-            </Button>
-          </Stack>
-        </Stack>
-        <Stack spacing={2} px={0.75} py={3}>
-          <Link href="https://usewaypoint.com?utm_source=emailbuilderjs" target="_blank" sx={{ lineHeight: 1 }}>
-            <Box component="img" src={logo} width={32} />
-          </Link>
-          <Box>
-            <Typography variant="overline" gutterBottom>
-              Looking to send emails?
-            </Typography>
-            <Typography variant="body2" color="text.secondary" paragraph>
-              Waypoint is an end-to-end email API with a &apos;pro&apos; version of this template builder with dynamic
-              variables, loops, conditionals, drag and drop, layouts, and more.
-            </Typography>
-          </Box>
           <Button
             variant="contained"
-            color="primary"
-            sx={{ justifyContent: 'center' }}
-            href="https://usewaypoint.com?utm_source=emailbuilderjs"
-            target="_blank"
+            startIcon={<AddOutlined />}
+            onClick={() => {
+              resetDocument(EMPTY_EMAIL_MESSAGE);
+              // Remove templateId from URL when starting new email
+              const urlParams = new URLSearchParams(window.location.search);
+              urlParams.delete('templateId');
+              urlParams.delete('template');
+              const newSearch = urlParams.toString();
+              const newUrl = newSearch
+                ? `${window.location.pathname}?${newSearch}${window.location.hash}`
+                : `${window.location.pathname}${window.location.hash}`;
+              window.history.pushState({}, '', newUrl);
+            }}
+            sx={{ mb: 1 }}
           >
-            Learn more
+            New Email
           </Button>
+
+          {isLoading && (
+            <Stack alignItems="center" py={2}>
+              <CircularProgress size={24} />
+            </Stack>
+          )}
+
+          {error && (
+            <Alert severity="error" sx={{ mx: 0.75 }}>
+              Failed to load templates
+            </Alert>
+          )}
+
+          {templates && templates.length > 0 && (
+            <Stack alignItems="flex-start">
+              {templates.map((template) => (
+                <TemplateButton key={template.id} template={template} />
+              ))}
+            </Stack>
+          )}
+
+          {templates && templates.length === 0 && !isLoading && (
+            <Typography variant="body2" color="text.secondary" sx={{ px: 0.75 }}>
+              No templates available
+            </Typography>
+          )}
         </Stack>
       </Stack>
     </Drawer>

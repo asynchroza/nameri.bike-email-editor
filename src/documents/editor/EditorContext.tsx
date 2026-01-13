@@ -14,6 +14,7 @@ type TValue = {
 
   inspectorDrawerOpen: boolean;
   samplesDrawerOpen: boolean;
+  currentTemplateId: number | null;
 };
 
 const editorStateStore = create<TValue>(() => ({
@@ -25,6 +26,7 @@ const editorStateStore = create<TValue>(() => ({
 
   inspectorDrawerOpen: true,
   samplesDrawerOpen: true,
+  currentTemplateId: null,
 }));
 
 export function useDocument() {
@@ -81,6 +83,7 @@ export function resetDocument(document: TValue['document']) {
     document,
     selectedSidebarTab: 'styles',
     selectedBlockId: null,
+    currentTemplateId: null,
   });
 }
 
@@ -106,4 +109,12 @@ export function toggleSamplesDrawerOpen() {
 
 export function setSelectedScreenSize(selectedScreenSize: TValue['selectedScreenSize']) {
   return editorStateStore.setState({ selectedScreenSize });
+}
+
+export function useCurrentTemplateId() {
+  return editorStateStore((s) => s.currentTemplateId);
+}
+
+export function setCurrentTemplateId(currentTemplateId: TValue['currentTemplateId']) {
+  return editorStateStore.setState({ currentTemplateId });
 }

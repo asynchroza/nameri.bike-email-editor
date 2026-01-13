@@ -47,6 +47,15 @@ export default function ImportJsonDialog({ onClose }: ImportJsonDialogProps) {
             return;
           }
           resetDocument(data);
+          // Remove templateId from URL when importing JSON (not a template)
+          const urlParams = new URLSearchParams(window.location.search);
+          urlParams.delete('templateId');
+          urlParams.delete('template');
+          const newSearch = urlParams.toString();
+          const newUrl = newSearch
+            ? `${window.location.pathname}?${newSearch}${window.location.hash}`
+            : `${window.location.pathname}${window.location.hash}`;
+          window.history.pushState({}, '', newUrl);
           onClose();
         }}
       >
