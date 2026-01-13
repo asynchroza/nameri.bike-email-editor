@@ -238,6 +238,7 @@ export default function SendEmailDialog({ open, onClose }: SendEmailDialogProps)
         onClose={() => setSuccessMessage(null)}
         message={successMessage}
         anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        sx={{ zIndex: (theme) => theme.zIndex.modal + 1 }}
       />
 
       <Snackbar
@@ -246,7 +247,10 @@ export default function SendEmailDialog({ open, onClose }: SendEmailDialogProps)
         onClose={() => setErrorMessage(null)}
         message={errorMessage}
         anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-        sx={{ '& .MuiSnackbarContent-root': { backgroundColor: 'error.main' } }}
+        sx={{
+          zIndex: (theme) => theme.zIndex.modal + 1,
+          '& .MuiSnackbarContent-root': { backgroundColor: 'error.main' },
+        }}
       />
     </>
   );
