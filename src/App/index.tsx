@@ -1,8 +1,10 @@
 import React, { useEffect, useRef } from 'react';
 
+import { useQueryClient } from '@tanstack/react-query';
 import { Stack, useTheme } from '@mui/material';
 
 import { useEmailTemplates } from '../api/hooks';
+import { seedTemplates } from '../api/seedTemplates';
 import { resetDocument, setCurrentTemplateId, useInspectorDrawerOpen, useSamplesDrawerOpen } from '../documents/editor/EditorContext';
 import type { TEditorConfiguration } from '../documents/editor/core';
 
@@ -19,10 +21,21 @@ function useDrawerTransition(cssProperty: 'margin-left' | 'margin-right', open: 
 }
 
 export default function App() {
+  const queryClient = useQueryClient();
   const inspectorDrawerOpen = useInspectorDrawerOpen();
   const samplesDrawerOpen = useSamplesDrawerOpen();
   const { data: templates } = useEmailTemplates();
   const templateLoadedRef = useRef(false);
+  const seedAttemptedRef = useRef(false);
+
+  // Seed sample templates into the database when none exist
+  useEffect(() => {
+    if (templates === undefined || templates.length > 0 || seedAttemptedRef.current) return;
+    seedAttemptedRef.current = true;
+    seedTemplates().then(() => {
+      queryClient.invalidateQueries({ queryKey: ['emailTemplates'] });
+    });
+  }, [templates, queryClient]);
 
   // Load template from query parameter on initial load
   useEffect(() => {
