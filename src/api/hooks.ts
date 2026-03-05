@@ -38,9 +38,10 @@ export type UserSearchResponse = {
 export type SendEmailsRequest = {
   html: string;
   subject: string;
-  userIds: string[];
-  preferredLanguage?: string;
-  countryCode?: string;
+  userIds?: string[];
+  preferredLanguage?: string[];
+  countryCode?: string[];
+  includeUsersWithoutPreferredLanguage?: boolean;
 };
 
 export type SendEmailsResponse = {

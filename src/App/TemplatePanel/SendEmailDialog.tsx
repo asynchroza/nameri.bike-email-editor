@@ -2,26 +2,23 @@ import React, { useState, useMemo } from 'react';
 
 import { renderToStaticMarkup } from '@usewaypoint/email-builder';
 import {
-  Alert,
   Button,
+  Checkbox,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
-  FormControl,
-  InputLabel,
-  MenuItem,
-  Select,
+  FormControlLabel,
   Snackbar,
   TextField,
   Typography,
 } from '@mui/material';
 
 import { useDocument } from '../../documents/editor/EditorContext';
-import { useSendEmails, type UserSearchResponse } from '../../api/hooks';
-import { LANGUAGE_OPTIONS } from '../../utils/countryMapping';
+import { useSendEmails, type SendEmailsRequest, type UserSearchResponse } from '../../api/hooks';
 
 import CountryMultiSelect from './SendEmailDialog/CountryMultiSelect';
+import LanguageMultiSelect from './SendEmailDialog/LanguageMultiSelect';
 import SelectedUsersDisplay from './SendEmailDialog/SelectedUsersDisplay';
 import UserSearchTable from './SendEmailDialog/UserSearchTable';
 
@@ -37,7 +34,8 @@ export default function SendEmailDialog({ open, onClose }: SendEmailDialogProps)
   const [selectedUsers, setSelectedUsers] = useState<UserSearchResponse[]>([]);
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
   const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
-  const [selectedLanguage, setSelectedLanguage] = useState<string>('');
+  const [selectedLanguages, setSelectedLanguages] = useState<string[]>([]);
+  const [includeUsersWithoutPreferredLanguage, setIncludeUsersWithoutPreferredLanguage] = useState(false);
   const [subjectError, setSubjectError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -75,7 +73,7 @@ export default function SendEmailDialog({ open, onClose }: SendEmailDialogProps)
       });
     }
     // Remove users that are no longer selected
-    setSelectedUsers((prev) => prev.filter((u) => userIds.includes(u.id)));
+    setSelectedUsers((prev) => prev.filter((u) => userIds.indexOf(u.id) !== -1));
   };
 
   const handleRemoveUser = (userId: string) => {
@@ -92,7 +90,12 @@ export default function SendEmailDialog({ open, onClose }: SendEmailDialogProps)
       setSubjectError('Subject is too long (max 255 characters)');
       return;
     }
-    if (selectedUserIds.length === 0 && selectedCountries.length === 0 && !selectedLanguage) {
+    const hasFilters =
+      selectedUserIds.length > 0 ||
+      selectedCountries.length > 0 ||
+      selectedLanguages.length > 0 ||
+      includeUsersWithoutPreferredLanguage;
+    if (!hasFilters) {
       setErrorMessage('Please select at least one user or apply filters');
       return;
     }
@@ -102,27 +105,21 @@ export default function SendEmailDialog({ open, onClose }: SendEmailDialogProps)
     }
 
     try {
-      // Build request payload
-      const payload: {
-        html: string;
-        subject: string;
-        userIds: string[];
-        preferredLanguage?: string;
-        countryCode?: string;
-      } = {
+      const payload: SendEmailsRequest = {
         html: htmlContent,
         subject: subject.trim(),
-        userIds: selectedUserIds,
       };
-
-      // Add filters if selected
-      if (selectedLanguage) {
-        payload.preferredLanguage = selectedLanguage;
+      if (selectedUserIds.length > 0) {
+        payload.userIds = selectedUserIds;
       }
-      // Note: Schema shows countryCode as single string, but we have multiple
-      // Sending first selected country for now
+      if (selectedLanguages.length > 0) {
+        payload.preferredLanguage = selectedLanguages;
+      }
       if (selectedCountries.length > 0) {
-        payload.countryCode = selectedCountries[0];
+        payload.countryCode = selectedCountries;
+      }
+      if (includeUsersWithoutPreferredLanguage) {
+        payload.includeUsersWithoutPreferredLanguage = true;
       }
 
       const response = await sendEmails.mutateAsync(payload);
@@ -144,7 +141,8 @@ export default function SendEmailDialog({ open, onClose }: SendEmailDialogProps)
     setSelectedUserIds([]);
     setSelectedUsers([]);
     setSelectedCountries([]);
-    setSelectedLanguage('');
+    setSelectedLanguages([]);
+    setIncludeUsersWithoutPreferredLanguage(false);
     setSubjectError(null);
     setSuccessMessage(null);
     setErrorMessage(null);
@@ -181,7 +179,7 @@ export default function SendEmailDialog({ open, onClose }: SendEmailDialogProps)
           />
 
           <SelectedUsersDisplay
-            users={selectedUsers.filter((user) => selectedUserIds.includes(user.id))}
+            users={selectedUsers.filter((user) => selectedUserIds.indexOf(user.id) !== -1)}
             onRemove={handleRemoveUser}
           />
 
@@ -191,27 +189,21 @@ export default function SendEmailDialog({ open, onClose }: SendEmailDialogProps)
 
           <CountryMultiSelect value={selectedCountries} onChange={setSelectedCountries} />
 
-          <FormControl fullWidth sx={{ mt: 2, mb: 2 }}>
-            <InputLabel>Preferred Language (Optional)</InputLabel>
-            <Select
-              value={selectedLanguage}
-              onChange={(e) => setSelectedLanguage(e.target.value)}
-              label="Preferred Language (Optional)"
-            >
-              <MenuItem value="">None</MenuItem>
-              {LANGUAGE_OPTIONS.map((lang) => (
-                <MenuItem key={lang.code} value={lang.code}>
-                  {lang.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          <LanguageMultiSelect
+            value={selectedLanguages}
+            onChange={setSelectedLanguages}
+          />
 
-          {selectedCountries.length > 1 && (
-            <Alert severity="info" sx={{ mt: 2 }}>
-              Note: Only the first selected country will be sent to the backend. Multiple country support may require backend changes.
-            </Alert>
-          )}
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={includeUsersWithoutPreferredLanguage}
+                onChange={(e) => setIncludeUsersWithoutPreferredLanguage(e.target.checked)}
+              />
+            }
+            label="Include users who have not set preferred language"
+            sx={{ mt: 2, display: 'block' }}
+          />
         </DialogContent>
         <DialogActions>
           <Button onClick={handleClose} disabled={sendEmails.isPending}>
@@ -224,7 +216,12 @@ export default function SendEmailDialog({ open, onClose }: SendEmailDialogProps)
               sendEmails.isPending ||
               subjectError !== null ||
               subject.trim().length === 0 ||
-              (selectedUserIds.length === 0 && selectedCountries.length === 0 && !selectedLanguage)
+              !(
+                selectedUserIds.length > 0 ||
+                selectedCountries.length > 0 ||
+                selectedLanguages.length > 0 ||
+                includeUsersWithoutPreferredLanguage
+              )
             }
           >
             {sendEmails.isPending ? 'Sending...' : 'Send'}
